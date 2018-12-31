@@ -1,2 +1,2 @@
-# Tennis
-Basic old school tennis..
+# Paddle Pong
+Basic old school paddle pong..
