@@ -1,6 +1,8 @@
 import pygame
 import numpy as np
 import pyglet
+import math
+from random import randrange
 
 white = (255,255,255)
 red = (255,0,0)
@@ -19,11 +21,16 @@ clock = pyglet.clock.Clock()
 class paddle:
     speed = 20
     height = 333
-    width = 70
+    width = 50
+    score = 0
+    
     def __init__(self,x,y):
         self.x = x
         self.y = y
         pygame.draw.rect(screen,white,[self.x,self.y,self.width,self.height])
+    
+    def get_pos(self):
+        return [self.x,self.y,self.x+self.width,self.y+self.height]
         
     def show(self):
         pygame.draw.rect(screen,white,[self.x,self.y,self.width,self.height])
@@ -38,32 +45,102 @@ class paddle:
             self.y += self.speed        
         pygame.draw.rect(screen,white,[self.x,self.y,self.width,self.height])
         
+    def inc_score(self):
+        self.score+=1
+        
 class pong:
-    speed_x = 20
-    speed_y = 10
-    height = 70
-    width = 70
-    
-    def __init__(self,x,y):
-        self.x = x
-        self.y = y
+    def __init__(self):
+        self.speed = 7
+        self.height = 50
+        self.width = 50
+        self.x = page_width/2-self.width/2
+        self.y = page_height/2-self.height/2
+        self.direction = randrange(-45,45)
+        if randrange(2) == 0 :
+            self.direction += 180
         pygame.draw.rect(screen,red,[self.x,self.y,self.width,self.height])
         
-    
+    def get_pos(self):
+        return [self.x,self.y,self.x+self.width,self.y+self.height]
+        
+    def reset(self):
+        self.x = page_width/2-self.width/2
+        self.y = page_height/2-self.height/2
+        self.direction = randrange(-45,45)
+        if randrange(2) == 0 :
+            self.direction += 180
+        pygame.draw.rect(screen,red,[self.x,self.y,self.width,self.height])
+        
+        
+    def bounce(self,diff):
+        self.direction = (180-self.direction)%360
+        self.direction -= diff      
+        print("bounce")
+        
     def show(self):
         pygame.draw.rect(screen,red,[self.x,self.y,self.width,self.height])
         
+    def move(self):
+        direction_radians = math.radians(self.direction)
+ 
+        self.x += self.speed * math.cos(direction_radians)
+        self.y -= self.speed * math.sin(direction_radians)
+ 
+        if self.x < 0:
+            self.reset()
+            return 0
+ 
+        if self.x > page_width-self.width:
+            self.reset()
+            return 1
+  
+        if self.y <= 0:
+            self.direction = (360-self.direction)%360
+            print(self.direction)
+ 
+        if self.y > page_height-self.height:
+            self.direction = (360-self.direction)%360
+        
+        return -1
+            
+def collision(r1,r2):
+    return  (r1[0] < r2[2]) and (r2[0] < r1[2]) and \
+            (r1[1] < r2[3]) and (r2[1] < r1[3])
+        
 def play():
     left_paddle = paddle(0,300)
-    right_paddle = paddle(1930,300)
-    p1 = pong(1000,500)
+    right_paddle = paddle(1950,300)
+    p1 = pong()
     gameover = False
     while not gameover:
         clock.tick(100)
         pygame.draw.rect(screen,black,[0,0,page_width,page_height])
+        pygame.draw.line(screen,white,[page_width/2,0],[page_width/2,page_height])
+        
+        point = p1.move()
+        left_paddle_pos = left_paddle.get_pos()
+        right_paddle_pos = right_paddle.get_pos()
+        pong_pos = p1.get_pos()
+        
+        
         left_paddle.show()
         right_paddle.show()
         p1.show()
+        
+        if point != -1:
+            if point == 0:
+                right_paddle.inc_score()
+            else:
+                left_paddle.inc_score()
+                
+        if collision(left_paddle_pos,pong_pos):
+            diff = left_paddle.y + left_paddle.height/2 - (p1.y + p1.height/2)
+            p1.bounce(diff)
+            
+        if collision(right_paddle_pos,pong_pos):
+            diff = right_paddle.y +right_paddle.height/2 - (p1.y + p1.height/2)
+            p1.bounce(diff)
+        
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -77,11 +154,12 @@ def play():
         if keys[pygame.K_s]:
             left_paddle.movedown()
 
-        if keys[pygame.K_UP]:
+        if keys[pygame.K_i]:
             right_paddle.moveup()
 
-        if keys[pygame.K_DOWN]:
+        if keys[pygame.K_k]:
             right_paddle.movedown()
+            
                 
         pygame.display.update()
         
