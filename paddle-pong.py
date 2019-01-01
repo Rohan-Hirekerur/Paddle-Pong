@@ -50,7 +50,7 @@ class paddle:
         
 class pong:
     def __init__(self):
-        self.speed = 7
+        self.speed = 10
         self.height = 50
         self.width = 50
         self.x = page_width/2-self.width/2
@@ -67,14 +67,16 @@ class pong:
         self.x = page_width/2-self.width/2
         self.y = page_height/2-self.height/2
         self.direction = randrange(-45,45)
+        self.speed = 10
         if randrange(2) == 0 :
             self.direction += 180
         pygame.draw.rect(screen,red,[self.x,self.y,self.width,self.height])
         
         
-    def bounce(self,diff):
+    def bounce(self):
         self.direction = (180-self.direction)%360
-        self.direction -= diff      
+        self.direction -= randrange(-30,30)
+        self.speed*=1.05
         print("bounce")
         
     def show(self):
@@ -115,7 +117,7 @@ def play():
     while not gameover:
         clock.tick(100)
         pygame.draw.rect(screen,black,[0,0,page_width,page_height])
-        pygame.draw.line(screen,white,[page_width/2,0],[page_width/2,page_height])
+        #pygame.draw.line(screen,white,[page_width/2,0],[page_width/2,page_height])
         
         point = p1.move()
         left_paddle_pos = left_paddle.get_pos()
@@ -128,18 +130,14 @@ def play():
         p1.show()
         
         if point != -1:
+            pygame.time.delay(1000)
             if point == 0:
                 right_paddle.inc_score()
             else:
                 left_paddle.inc_score()
                 
-        if collision(left_paddle_pos,pong_pos):
-            diff = left_paddle.y + left_paddle.height/2 - (p1.y + p1.height/2)
-            p1.bounce(diff)
-            
-        if collision(right_paddle_pos,pong_pos):
-            diff = right_paddle.y +right_paddle.height/2 - (p1.y + p1.height/2)
-            p1.bounce(diff)
+        if collision(left_paddle_pos,pong_pos) or collision(right_paddle_pos,pong_pos):
+            p1.bounce()
         
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
