@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
+
 import pygame
+import numpy as np
 import pyglet
 import math
 from random import randrange
@@ -87,7 +90,8 @@ class pong:
         self.y -= self.speed * math.sin(direction_radians)
  
         if self.x < 0:
-            self.reset()
+            self.direction = (180-self.direction)%360
+            self.direction -= randrange(-10,10)
             return 0
  
         if self.x > page_width-self.width:
@@ -107,39 +111,24 @@ def collision(r1,r2):
             (r1[1] < r2[3]) and (r2[1] < r1[3])
         
 def play():
-    left_paddle = paddle(0,300)
     right_paddle = paddle(1950,300)
     p1 = pong()
     while True:
-        clock.tick(100)
+        clock.tick(30)
         pygame.draw.rect(screen,black,[0,0,page_width,page_height])        
         point = p1.move()
-        left_paddle_pos = left_paddle.get_pos()
         right_paddle_pos = right_paddle.get_pos()
         pong_pos = p1.get_pos()
         
-        left_paddle.show()
         right_paddle.show()
         p1.show()
-        
-        if point != -1:
-            pygame.time.delay(1000)
-            if point == 0:
-                right_paddle.inc_score()
-            else:
-                left_paddle.inc_score()
-                
-        scoreprint = str(left_paddle.score)
-        text = font.render(scoreprint, 1, white)
-        textpos = (100, 25)
-        screen.blit(text, textpos)
         
         scoreprint = str(right_paddle.score)
         text = font.render(scoreprint, 1, white)
         textpos = (1900, 25)
         screen.blit(text, textpos)
         
-        if collision(left_paddle_pos,pong_pos) or collision(right_paddle_pos,pong_pos):
+        if collision(right_paddle_pos,pong_pos):
             p1.bounce()
         
         for event in pygame.event.get():
@@ -149,24 +138,18 @@ def play():
                 
         keys = pygame.key.get_pressed()
 
-        if keys[pygame.K_w]:
-            left_paddle.moveup()
-
-        if keys[pygame.K_s]:
-            left_paddle.movedown()
-
         if keys[pygame.K_i]:
             right_paddle.moveup()
 
         if keys[pygame.K_k]:
-            right_paddle.movedown()
-            
+            right_paddle.movedown()          
                 
         pygame.display.update()
         
-        if left_paddle.score == 3 or right_paddle.score == 3:
+        if right_paddle.score == 3:
             pygame.time.delay(2000)
             break
         
 play()
 pygame.quit()
+
