@@ -60,7 +60,7 @@ class Pong:
         self.direction = randrange(-45, 45)
         if randrange(2) == 0:
             self.direction += 180
-        pygame.draw.rect(screen, red, [self.x, self.y, self.width, self.height])
+        pygame.draw.rect(screen, white, [self.x, self.y, self.width, self.height])
 
     def get_pos(self):
         return [self.x, self.y, self.x + self.width, self.y + self.height]
@@ -72,7 +72,7 @@ class Pong:
         self.speed = 10
         if randrange(2) == 0:
             self.direction += 180
-        pygame.draw.rect(screen, red, [self.x, self.y, self.width, self.height])
+        pygame.draw.rect(screen, white, [self.x, self.y, self.width, self.height])
 
     def bounce(self):
         self.direction = (180 - self.direction) % 360
@@ -80,7 +80,7 @@ class Pong:
         self.speed *= 1.05
 
     def show(self):
-        pygame.draw.rect(screen, red, [self.x, self.y, self.width, self.height])
+        pygame.draw.rect(screen, white, [self.x, self.y, self.width, self.height])
 
     def move(self):
         direction_radians = math.radians(self.direction)
@@ -123,12 +123,16 @@ def play():
         right_paddle.show()
         p1.show()
 
+        if point == 1:
+            right_paddle.score = 0
+
         score_print = str(right_paddle.score)
         text = font.render(score_print, 1, white)
         text_pos = (950, 12)
         screen.blit(text, text_pos)
 
         if collision(right_paddle_pos, pong_pos):
+            right_paddle.inc_score()
             p1.bounce()
 
         for event in pygame.event.get():

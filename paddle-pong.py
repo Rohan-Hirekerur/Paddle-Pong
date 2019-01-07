@@ -60,7 +60,7 @@ class Pong:
         self.direction = randrange(-45, 45)
         if randrange(2) == 0:
             self.direction += 180
-        pygame.draw.rect(screen, red, [self.x, self.y, self.width, self.height])
+        pygame.draw.rect(screen, white, [self.x, self.y, self.width, self.height])
         
     def get_pos(self):
         return [self.x, self.y, self.x+self.width, self.y+self.height]
@@ -72,7 +72,7 @@ class Pong:
         self.speed = 10
         if randrange(2) == 0:
             self.direction += 180
-        pygame.draw.rect(screen, red, [self.x, self.y, self.width, self.height])
+        pygame.draw.rect(screen, white, [self.x, self.y, self.width, self.height])
 
     def bounce(self):
         self.direction = (180-self.direction) % 360
@@ -80,7 +80,7 @@ class Pong:
         self.speed *= 1.05
         
     def show(self):
-        pygame.draw.rect(screen, red, [self.x, self.y, self.width, self.height])
+        pygame.draw.rect(screen, white, [self.x, self.y, self.width, self.height])
         
     def move(self):
         direction_radians = math.radians(self.direction)
