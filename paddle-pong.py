@@ -68,7 +68,7 @@ class Pong:
     def reset(self):
         self.x = page_width / 2 - self.width / 2
         self.y = page_height / 2 - self.height / 2
-        self.direction = randrange(-45, 45)
+        self.direction = randrange(-60, 60)
         self.speed = 10
         if randrange(2) == 0:
             self.direction += 180
@@ -76,7 +76,9 @@ class Pong:
 
     def bounce(self):
         self.direction = (180 - self.direction) % 360
-        self.speed *= 1.05
+        self.direction += randrange(-5, 5)
+        if self.speed < 37:
+            self.speed *= 1.05
 
     def show(self):
         pygame.draw.rect(screen, white, [self.x, self.y, self.width, self.height])
@@ -173,15 +175,15 @@ def play():
         if keys[pygame.K_s]:
             left_paddle.move_down()
 
-        if keys[pygame.K_i]:
+        if p1.y + p1.height / 2 < right_paddle.y + right_paddle.height / 2 and p1.x > (page_width - (page_width / 3)):
             right_paddle.move_up()
 
-        if keys[pygame.K_k]:
+        if p1.y + p1.height / 2 > right_paddle.y + right_paddle.height / 2 and p1.x > (page_width - (page_width / 3)):
             right_paddle.move_down()
 
         pygame.display.update()
 
-        if left_paddle.score == 10 or right_paddle.score == 10:
+        if left_paddle.score == 5 or right_paddle.score == 5:
             pygame.time.delay(2000)
             break
 
