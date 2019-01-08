@@ -21,25 +21,21 @@ clock = pyglet.clock.Clock()
 clock.set_fps_limit(60)
 font = pygame.font.Font(None, 25)
 
-observations = tf.placeholder(shape=[1, 500, 250], dtype=tf.float32)
-actions = tf.placeholder(shape=[100,1,1], dtype=tf.int32)
-rewards = tf.placeholder(shape=[None], dtype=tf.float32)
-
-obvs = []
-acs = []
-rews = []
+observations = tf.placeholder(shape=None, dtype=tf.float32)
+actions = tf.placeholder(shape=None, dtype=tf.int32)
+rewards = tf.placeholder(shape=None, dtype=tf.float32)
 
 
 def cnn(X):
-    W_conv1 = tf.Variable(tf.random.normal([5, 5, 1, 4]))
-    W_conv2 = tf.Variable(tf.random.normal([5, 5, 4, 8]))
-    W_fc = tf.Variable(tf.random.normal([125*63*8, 300]))
-    W_out = tf.Variable(tf.random.normal([300, 3]))
+    W_conv1 = tf.Variable(tf.truncated_normal([5, 5, 1, 2]))
+    W_conv2 = tf.Variable(tf.truncated_normal([5, 5, 2, 4]))
+    W_fc = tf.Variable(tf.truncated_normal([125*63*4, 300]))
+    W_out = tf.Variable(tf.truncated_normal([300, 3]))
 
-    B_conv1 = tf.Variable(tf.random.normal([32]))
-    B_conv2 = tf.Variable(tf.random.normal([64]))
-    B_fc = tf.Variable(tf.random.normal([300]))
-    B_out = tf.Variable(tf.random.normal([3]))
+    B_conv1 = tf.Variable(tf.truncated_normal([32]))
+    B_conv2 = tf.Variable(tf.truncated_normal([64]))
+    B_fc = tf.Variable(tf.truncated_normal([300]))
+    B_out = tf.Variable(tf.truncated_normal([3]))
 
     X = X.astype(dtype=np.float32)
     X = tf.reshape(X, shape=[-1, 500, 250, 1])
@@ -50,7 +46,7 @@ def cnn(X):
     conv2 = tf.nn.conv2d(conv1, W_conv2, strides=[1, 1, 1, 1], padding='SAME')
     conv2 = tf.nn.max_pool(conv2, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
 
-    fc = tf.reshape(conv2, [-1, 125*63*8])
+    fc = tf.reshape(conv2, [-1, 125*63*4])
     fc = tf.nn.relu(tf.matmul(fc, W_fc) + B_fc)
 
     out = tf.matmul(fc, W_out) + B_out
@@ -164,13 +160,19 @@ def right_collision(r1, r2):
 
 
 def play():
+    obvs = []
+    acs = []
+    rews = []
     prev_pix = pygame.surfarray.array2d(screen)
     prediction = cnn(prev_pix)
     sample = tf.multinomial(prediction, num_samples=1)
-    #print(sample)
-    cross_entropies = tf.losses.softmax_cross_entropy(onehot_labels=tf.one_hot(actions, ), logits=prediction)
+    print(sample)
+    print(tf.one_hot(sample, 3))
+    print(actions)
+    print(tf.one_hot(actions, 3))
+    cross_entropies = tf.losses.softmax_cross_entropy(onehot_labels=tf.one_hot(actions, 3), logits=prediction)
     loss = tf.reduce_sum(rewards * cross_entropies)
-    optimizer = tf.train.RMSPropOptimizer(learning_rate=0.001, decay=0.99)
+    optimizer = tf.train.RMSPropOptimizer(learning_rate=0.1, decay=0.99)
     train_op = optimizer.minimize(loss)
 
     with tf.Session() as sess:
@@ -199,7 +201,7 @@ def play():
 
             score_print = str(right_paddle.score)
             text = font.render(score_print, 1, white)
-            text_pos = (950, 12)
+            text_pos = (488, 12)
             screen.blit(text, text_pos)
 
             for event in pygame.event.get():
@@ -213,7 +215,7 @@ def play():
             prev_pix = curr_pix
 
             action = sess.run(sample, feed_dict={observations: [observation]})
-            print(action)
+            #print(action)
 
             if p1.y + p1.height / 2 < left_paddle.y + left_paddle.height/2 and p1.x < page_width/3:
                 left_paddle.move_up()
@@ -233,7 +235,7 @@ def play():
             reward = [0]
 
             if point != -1:
-                pygame.time.delay(500)
+                #pygame.time.delay(500)
                 if point == 0:
                     right_paddle.inc_score()
                     reward = [1]
@@ -248,14 +250,15 @@ def play():
             rews.append(reward)
 
             if left_paddle.score == 3 or right_paddle.score == 3:
-                pygame.time.delay(2000)
+                #pygame.time.delay(2000)
                 break
 
     with tf.Session() as sess:
-#        actions = tf.reshape(actions, [200, 1, 1])
-        sess.run(train_op, feed_dict={actions: acs})
+        init = tf.global_variables_initializer()
+        sess.run(init)
+        sess.run(train_op, feed_dict={observations: obvs, actions: acs, rewards: rews})
 
 
-
-play()
+for i in range(0, 100):
+    play()
 pygame.quit()
