@@ -49,9 +49,22 @@ def cnn(X):
     fc = tf.reshape(conv2, [-1, 125*63*4])
     fc = tf.nn.relu(tf.matmul(fc, W_fc) + B_fc)
 
-    out = tf.matmul(fc, W_out) + B_out
+    out = tf.nn.softmax(tf.matmul(fc, W_out) + B_out)
 
     return out
+
+
+prev_pix = pygame.surfarray.array2d(screen)
+prediction = cnn(prev_pix)
+sample = tf.multinomial(prediction, num_samples=1)
+print(sample)
+print(tf.one_hot(sample, 3))
+print(actions)
+print(tf.one_hot(actions, 3))
+cross_entropies = tf.losses.softmax_cross_entropy(onehot_labels=tf.one_hot(actions, 3), logits=prediction)
+loss = tf.reduce_sum(rewards * cross_entropies)
+optimizer = tf.train.RMSPropOptimizer(learning_rate=0.03, decay=0.99)
+train_op = optimizer.minimize(loss)
 
 
 class Paddle:
@@ -164,99 +177,93 @@ def play():
     acs = []
     rews = []
     prev_pix = pygame.surfarray.array2d(screen)
-    prediction = cnn(prev_pix)
-    sample = tf.multinomial(prediction, num_samples=1)
-    print(sample)
-    print(tf.one_hot(sample, 3))
-    print(actions)
-    print(tf.one_hot(actions, 3))
-    cross_entropies = tf.losses.softmax_cross_entropy(onehot_labels=tf.one_hot(actions, 3), logits=prediction)
-    loss = tf.reduce_sum(rewards * cross_entropies)
-    optimizer = tf.train.RMSPropOptimizer(learning_rate=0.1, decay=0.99)
-    train_op = optimizer.minimize(loss)
+    with tf.device("/cpu:0"):
+        with tf.Session() as sess:
+            init = tf.global_variables_initializer()
+            sess.run(init)
+            left_paddle = Paddle(0, 75)
+            right_paddle = Paddle(487, 75)
+            p1 = Pong()
 
-    with tf.Session() as sess:
-        init = tf.global_variables_initializer()
-        sess.run(init)
-        left_paddle = Paddle(0, 75)
-        right_paddle = Paddle(487, 75)
-        p1 = Pong()
+            while True:
+                clock.tick()
+                pygame.draw.rect(screen, black, [0, 0, page_width, page_height])
+                point = p1.move()
+                left_paddle_pos = left_paddle.get_pos()
+                right_paddle_pos = right_paddle.get_pos()
+                pong_pos = p1.get_pos()
 
-        while True:
-            clock.tick()
-            pygame.draw.rect(screen, black, [0, 0, page_width, page_height])
-            point = p1.move()
-            left_paddle_pos = left_paddle.get_pos()
-            right_paddle_pos = right_paddle.get_pos()
-            pong_pos = p1.get_pos()
+                left_paddle.show()
+                right_paddle.show()
+                p1.show()
 
-            left_paddle.show()
-            right_paddle.show()
-            p1.show()
+                score_print = str(left_paddle.score)
+                text = font.render(score_print, 1, white)
+                text_pos = (50, 12)
+                screen.blit(text, text_pos)
 
-            score_print = str(left_paddle.score)
-            text = font.render(score_print, 1, white)
-            text_pos = (50, 12)
-            screen.blit(text, text_pos)
+                score_print = str(right_paddle.score)
+                text = font.render(score_print, 1, white)
+                text_pos = (488, 12)
+                screen.blit(text, text_pos)
 
-            score_print = str(right_paddle.score)
-            text = font.render(score_print, 1, white)
-            text_pos = (488, 12)
-            screen.blit(text, text_pos)
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        pygame.quit()
+                        break
 
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
+                #            keys = pygame.key.get_pressed()
+                curr_pix = pygame.surfarray.array2d(screen)
+                observation = curr_pix - prev_pix
+                prev_pix = curr_pix
+
+                action = sess.run(sample, feed_dict={observations: [observation]})
+                #print(action)
+
+                if p1.y + p1.height / 2 < left_paddle.y + left_paddle.height/2 and p1.x < page_width/3:
+                    left_paddle.move_up()
+
+                if p1.y + p1.height / 2 > left_paddle.y + left_paddle.height/2 and p1.x < page_width/3:
+                    left_paddle.move_down()
+
+                if action[0] == [0]:
+                    right_paddle.move_up()
+
+                if action[0] == [2]:
+                    right_paddle.move_down()
+
+                if left_collision(left_paddle_pos, pong_pos) or right_collision(right_paddle_pos, pong_pos):
+                    p1.bounce()
+
+                reward = [0]
+
+                if point != -1:
+                    #pygame.time.delay(500)
+                    if point == 0:
+                        right_paddle.inc_score()
+                        reward = [1]
+                    else:
+                        left_paddle.inc_score()
+                        reward = [-1]
+
+                pygame.display.update()
+
+                acs.append(action)
+                obvs.append(observation)
+                rews.append(reward)
+
+                if left_paddle.score == 3 or right_paddle.score == 3:
+                    #pygame.time.delay(2000)
                     break
 
-#            keys = pygame.key.get_pressed()
-            curr_pix = pygame.surfarray.array2d(screen)
-            observation = curr_pix - prev_pix
-            prev_pix = curr_pix
+            sess.close()
 
-            action = sess.run(sample, feed_dict={observations: [observation]})
-            #print(action)
-
-            if p1.y + p1.height / 2 < left_paddle.y + left_paddle.height/2 and p1.x < page_width/3:
-                left_paddle.move_up()
-
-            if p1.y + p1.height / 2 > left_paddle.y + left_paddle.height/2 and p1.x < page_width/3:
-                left_paddle.move_down()
-
-            if action[0] == [0]:
-                right_paddle.move_up()
-
-            if action[0] == [2]:
-                right_paddle.move_down()
-
-            if left_collision(left_paddle_pos, pong_pos) or right_collision(right_paddle_pos, pong_pos):
-                p1.bounce()
-
-            reward = [0]
-
-            if point != -1:
-                #pygame.time.delay(500)
-                if point == 0:
-                    right_paddle.inc_score()
-                    reward = [1]
-                else:
-                    left_paddle.inc_score()
-                    reward = [-1]
-
-            pygame.display.update()
-
-            acs.append(action)
-            obvs.append(observation)
-            rews.append(reward)
-
-            if left_paddle.score == 3 or right_paddle.score == 3:
-                #pygame.time.delay(2000)
-                break
-
-    with tf.Session() as sess:
-        init = tf.global_variables_initializer()
-        sess.run(init)
-        sess.run(train_op, feed_dict={observations: obvs, actions: acs, rewards: rews})
+    with tf.device("/cpu:0"):
+        with tf.Session() as sess:
+            init = tf.global_variables_initializer()
+            sess.run(init)
+            sess.run(train_op, feed_dict={observations: obvs, actions: acs, rewards: rews})
+            sess.close()
 
 
 for i in range(0, 100):

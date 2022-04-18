@@ -65,6 +65,9 @@ class Pong:
     def get_pos(self):
         return [self.x, self.y, self.x + self.width, self.y + self.height]
 
+    def get_pos(self):
+        return [self.x, self.y, self.x + self.width, self.y + self.height]
+
     def reset(self):
         self.x = page_width / 2 - self.width / 2
         self.y = page_height / 2 - self.height / 2
